@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FB股份 · 投资模拟</title>
+<link rel="stylesheet" href="/css/style.css?v=20260703-6">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<div class="container">
+
+<!-- ==================== 密码验证 ==================== -->
+<div id="password-screen" class="screen active">
+  <div class="setup-card">
+    <div class="logo">FB股份</div>
+    <div class="subtitle">投资模拟</div>
+    <div class="field">
+      <label>房间密码</label>
+      <input type="password" id="password-input" placeholder="输入密码进入房间" />
+    </div>
+    <button class="btn primary" id="password-submit">进入</button>
+    <div class="error-msg" id="password-error"></div>
+  </div>
+</div>
+
+<!-- ==================== 游戏大厅 ==================== -->
+<div id="lobby-screen" class="screen">
+  <div class="setup-card">
+    <div class="logo">FB股份</div>
+    <div class="subtitle">投资模拟</div>
+    <div class="field">
+      <label>你的名字</label>
+      <input type="text" id="username-input" placeholder="输入姓名" maxlength="8">
+    </div>
+    <button class="btn primary" id="username-submit">加入游戏</button>
+    <div class="error-msg" id="username-error"></div>
+    <div style="margin-top:20px">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">在线玩家</div>
+      <div id="players-list" class="player-list"></div>
+    </div>
+    <div class="field" style="margin-top:16px">
+      <label>游戏回合数<span class="hint">5~30 天</span></label>
+      <div class="round-input">
+        <input type="range" id="roundSlider" min="5" max="30" value="10" step="1" oninput="document.getElementById('roundVal').textContent=this.value">
+        <span class="val" id="roundVal">10</span>
+      </div>
+    </div>
+    <div id="lobby-controls">
+      <button class="btn primary" id="start-btn" disabled onclick="onStartClick()">开始游戏（等待玩家加入）</button>
+      <button class="btn quit-btn block" id="leave-btn" onclick="onLeaveClick()" style="display:none">离开大厅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 游戏界面 ==================== -->
+<div id="game-screen" class="screen">
+  <div class="top-bar">
+    <div>
+      <span class="brand">FB股份</span>
+      <span class="day-info" id="dayInfo"></span>
+      <span class="phase-badge" id="phaseBadge"></span>
+    </div>
+    <div class="price-display">
+      <div class="price price-flat" id="stockPrice">¥100.00</div>
+      <div class="change" id="stockChange"></div>
+    </div>
+  </div>
+  <div id="gameContent"></div>
+</div>
+
+<!-- ==================== 游戏结束 ==================== -->
+<div id="result-screen" class="screen">
+  <div class="result-card" id="final-results"></div>
+</div>
+
+<!-- ==================== 旁观者界面 ==================== -->
+<div id="spectator-screen" class="screen">
+  <div class="spec-card" id="spec-content"></div>
+</div>
+
+</div>
+
+<!-- 自定义即时模态框（替代alert，移动端不延迟） -->
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-icon" id="modalIcon"></div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <button class="btn primary" id="modalOkBtn">确定</button>
+  </div>
+</div>
+
+<!-- ==================== 弹幕表情系统 ==================== -->
+<!-- 弹幕飞行层（pointer-events:none 不拦截点击） -->
+<div class="danmaku-layer" id="danmakuLayer"></div>
+
+<!-- 悬浮表情按钮 + 展开面板 -->
+<div class="emoji-fab-wrap" id="emojiFabWrap" style="display:none">
+  <div class="emoji-panel" id="emojiPanel" style="display:none">
+    <button class="emoji-item" onclick="sendEmoji('😂')">😂<span>笑死</span></button>
+    <button class="emoji-item" onclick="sendEmoji('👍')">👍<span>点赞</span></button>
+    <button class="emoji-item" onclick="sendEmoji('😱')">😱<span>震惊</span></button>
+    <button class="emoji-item" onclick="sendEmoji('😡')">😡<span>愤怒</span></button>
+    <button class="emoji-item" onclick="sendEmoji('🤡')">🤡<span>小丑</span></button>
+    <button class="emoji-item" onclick="sendEmoji('😭')">😭<span>大哭</span></button>
+    <button class="emoji-item" onclick="sendEmoji('🤑')">🤑<span>发财</span></button>
+    <button class="emoji-item" onclick="sendEmoji('💀')">💀<span>完了</span></button>
+    <button class="emoji-item" onclick="sendEmoji('🎉')">🎉<span>庆祝</span></button>
+    <button class="emoji-item" onclick="sendEmoji('🤯')">🤯<span>爆炸</span></button>
+  </div>
+  <button class="emoji-fab" id="emojiFab" onclick="toggleEmojiPanel()">😎</button>
+</div>
+
+<script src="/js/game.js?v=20260703-10"></script>
+
+<!-- ==================== 版本不匹配强制刷新遮罩 ==================== -->
+<div class="version-mismatch-overlay" id="versionMismatchOverlay" style="display:none">
+  <div class="version-mismatch-card">
+    <div class="version-mismatch-icon">🔄</div>
+    <div class="version-mismatch-title">游戏已更新</div>
+    <div class="version-mismatch-desc">服务器版本已更新，当前页面版本过旧，请刷新页面以继续游戏。</div>
+    <button class="btn primary" onclick="forceRefresh()">刷新页面</button>
+  </div>
+</div>
+
+</body>
+</html>

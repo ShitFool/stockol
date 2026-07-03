@@ -1,0 +1,14 @@
+{
+  "name": "fbstock-server",
+  "version": "2.0.0",
+  "description": "FB股份 - 多人联机理财模拟器",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
