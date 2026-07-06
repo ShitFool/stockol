@@ -22,19 +22,35 @@ function setupSocketHandlers(io, socket, game) {
     }
   }
 
+  // 注册/注销作弊玩家（根据 socket.isCheat 标记）
+  function registerCheatStatus(socket) {
+    const name = socket.playerName;
+    if (!name) return;
+    if (socket.isCheat && !socket.isSpectator) {
+      game.addCheatPlayer(name);
+    } else {
+      game.removeCheatPlayer(name);
+    }
+  }
+  function unregisterCheatPlayer(name) {
+    game.removeCheatPlayer(name);
+  }
+
   // ==================== 密码验证 ====================
   socket.on('auth', (data, callback) => {
     console.log(`[auth] 收到验证请求`);
     try {
       const { password } = data || {};
       if (!password) return callback({ error: '请输入密码' });
-      if (!game.verifyPassword(password)) {
-        log(`验证失败：密码错误`);
-        return callback({ error: '密码错误' });
+      const result = game.verifyPassword(password);
+      if (!result.ok) {
+        log(`验证失败：${result.error || '密码错误'}`);
+        return callback({ error: result.error || '密码错误' });
       }
       socket.authenticated = true;
+      socket.isCheat = result.isCheat;
       callback({ ok: true });
-      log('验证通过');
+      log(`验证通过${result.isCheat ? '（作弊模式）' : ''}`);
     } catch (err) {
       log(`验证错误: ${err.message}`);
       callback({ error: '验证失败' });
@@ -85,6 +101,7 @@ function setupSocketHandlers(io, socket, game) {
           socket.playerName = cleanName;
           socket.isSpectator = false;
           socket.join('game-room');
+          registerCheatStatus(socket);
           if (!game.host) game.host = cleanName;
           callback({ ok: true, reconnected: true, isHost: game.host === cleanName });
           broadcastState('state_update');
@@ -99,6 +116,7 @@ function setupSocketHandlers(io, socket, game) {
             socket.playerName = cleanName;
             socket.isSpectator = false;
             socket.join('game-room');
+            registerCheatStatus(socket);
             callback({ ok: true, reconnected: true });
             broadcastState('state_update');
             log(`${cleanName} 重连成功`);
@@ -121,6 +139,7 @@ function setupSocketHandlers(io, socket, game) {
           socket.playerName = cleanName;
           socket.isSpectator = false;
           socket.join('game-room');
+          registerCheatStatus(socket);
           callback({ ok: true, reconnected: true });
           broadcastState('state_update');
           log(`${cleanName} 强制重连（旧连接已失效）`);
@@ -157,6 +176,7 @@ function setupSocketHandlers(io, socket, game) {
       socket.playerName = cleanName;
       socket.isSpectator = false;
       socket.join('game-room');
+      registerCheatStatus(socket);
 
       callback({ ok: true, isHost: result.isHost });
 
@@ -287,6 +307,7 @@ function setupSocketHandlers(io, socket, game) {
 
         socket.playerName = newName;
         socket.isSpectator = false;
+        registerCheatStatus(socket);
         callback({ ok: true, state: game.getStateFor(newName, false), isHost: true, phase: 'lobby' });
 
         // 广播：通知其他人有新局可加入（但不强制切屏）
@@ -324,6 +345,7 @@ function setupSocketHandlers(io, socket, game) {
 
           socket.playerName = newName;
           socket.isSpectator = false;
+          registerCheatStatus(socket);
           callback({ ok: true, state: game.getStateFor(newName, false), isHost: result.isHost, phase: 'lobby' });
           broadcastState('state_update');
           log(`${newName} 加入新一局大厅`);
@@ -398,6 +420,7 @@ function setupSocketHandlers(io, socket, game) {
       const result = game.kickInGame(target, socket.playerName);
       if (result.error) return callback({ error: result.error });
 
+      unregisterCheatPlayer(target);
       callback({ ok: true });
 
       // 通知被踢的玩家
@@ -454,6 +477,7 @@ function setupSocketHandlers(io, socket, game) {
       const result = game.kick(target, socket.playerName);
       if (result.error) return callback({ error: result.error });
 
+      unregisterCheatPlayer(target);
       callback({ ok: true });
 
       broadcastState('state_update');
@@ -499,6 +523,7 @@ function setupSocketHandlers(io, socket, game) {
       if (result.deleted) {
         // 大厅退出：断开连接，返回密码页
         const leftName = socket.playerName;
+        unregisterCheatPlayer(leftName);
         socket.leave('game-room');
         delete socket.playerName;
         delete socket.isSpectator;
@@ -510,6 +535,7 @@ function setupSocketHandlers(io, socket, game) {
         if (result.autoReset) {
           // 所有玩家退出 → 游戏已自动重置为 lobby，断开离开者
           const leftName = socket.playerName;
+          unregisterCheatPlayer(leftName);
           socket.leave('game-room');
           delete socket.playerName;
           delete socket.isSpectator;

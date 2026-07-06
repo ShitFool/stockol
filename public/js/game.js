@@ -106,6 +106,9 @@ function bindEvents() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // 切屏时清理粒子系统和残留粒子
+  if (_levParticleTimer) { clearInterval(_levParticleTimer); _levParticleTimer = null; }
+  document.querySelectorAll('.lev-fire-particle').forEach(el => el.remove());
   // emoji FAB 只在游戏/结算/结果/旁观者页面显示
   const showFab = ['game-screen','result-screen','spectator-screen'].includes(id);
   const fab = document.getElementById('emojiFabWrap');

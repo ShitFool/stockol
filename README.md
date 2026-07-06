@@ -3,10 +3,10 @@ AIGC:
   ContentProducer: '001191110102MAD55U9H0F10002'
   ContentPropagator: '001191110102MAD55U9H0F10002'
   Label: '1'
-  ProduceID: '2c9bec21-a22a-4d45-9539-9378533b3b03'
-  PropagateID: '2c9bec21-a22a-4d45-9539-9378533b3b03'
-  ReservedCode1: '82f4446b-4408-419b-8b11-e81e69c007e2'
-  ReservedCode2: '82f4446b-4408-419b-8b11-e81e69c007e2'
+  ProduceID: 'e1af4e48-58d3-44bd-a2b9-eb872904026e'
+  PropagateID: 'e1af4e48-58d3-44bd-a2b9-eb872904026e'
+  ReservedCode1: 'a148fcb8-a44c-4527-a49a-1fe903489bf6'
+  ReservedCode2: 'a148fcb8-a44c-4527-a49a-1fe903489bf6'
 ---
 
 # FB股份 · 投资模拟
@@ -43,7 +43,7 @@ AIGC:
 - **断线重连**：玩家掉线不会丢失数据，重新连接即可恢复身份与进度。
 - **房主与踢人**：房主可设置回合数、开局、踢人；房主离开后自动转移。
 - **辅助玩法**：大厅改名、表情弹幕（10 种表情、5 条弹幕轨道）、游戏日志导出、版本不匹配强制刷新。
-- **运行时作弊配置**：通过 `cheat-config.json` 热加载，可让指定玩家的决策决定新闻结局，无需重启服务。
+- **运行时作弊配置**：通过 `cheat-config.json` 热加载作弊密码通道，以作弊密码登录的玩家其决策将决定新闻结局，无需重启服务。
 - **红涨绿跌**：配色遵循中国市场习惯。
 - **移动端适配**：响应式布局，在 ≤600px 屏幕下使用固定底部 Dock 交互区。
 
@@ -89,7 +89,7 @@ AIGC:
 ## 目录结构
 
 ```
-fbstock-server/
+stockol/
 ├── server.js                  # 应用入口：Express + Socket.IO 服务，静态托管（含微信缓存策略），健康检查
 ├── ecosystem.config.js        # PM2 进程管理配置（单实例 fork 模式）
 ├── package.json               # 项目元数据与依赖
@@ -98,7 +98,7 @@ fbstock-server/
 │   ├── game/
 │   │   ├── GameEngine.js      # 核心游戏引擎：状态管理、加入/离开/重连、新闻生成、决策结算、杠杆/负债/退市/破产、作弊覆盖、状态序列化
 │   │   ├── newsData.js        # 新闻文案库（82 条：公开利多 22 / 公开利空 26 / 小道利多 18 / 小道利空 16）+ 破产结局文案 10 条
-│   │   └── cheat-config.json  # 作弊配置文件，支持运行时热加载（fs.watchFile 每秒检测）
+│   │   └── cheat-config.json  # 作弊密码配置文件，支持运行时热加载（fs.watchFile 每秒检测）
 │   └── socket/
 │       └── index.js           # Socket.IO 事件处理器：所有实时交互逻辑与个性化状态广播
 ├── public/                    # 前端静态文件（由 Express 直接托管）
@@ -114,15 +114,15 @@ fbstock-server/
 
 ### 各核心文件职责
 
-- **`server.js`** — 应用入口。创建 Express app、HTTP server 与 Socket.IO 实例（`pingTimeout: 60000`，`pingInterval: 25000`，CORS 白名单限制）；实例化全局单例 `GameEngine`；托管 `public/` 静态资源（HTML 文件设置 `no-store` 等激进的禁缓存策略，兼容微信 WebView 缓存问题）；提供 `/health` 健康检查；注册全局长时异常处理；监听 `PORT`（默认 5000）。
+- **`server.js`** — 应用入口。创建 Express app、HTTP server 与 Socket.IO 实例（`pingTimeout: 60000`，`pingInterval: 25000`，CORS 通过环境变量配置）；实例化全局单例 `GameEngine`；托管 `public/` 静态资源（HTML 文件设置 `no-store` 等激进的禁缓存策略，兼容微信 WebView 缓存问题）；提供 `/health` 健康检查；注册全局长时异常处理；监听 `PORT`（默认 5000）。
 
-- **`src/game/GameEngine.js`** — 项目核心，封装全部游戏规则。密码验证、玩家加入 / 离开 / 重连、新闻生成（概率分布与 fallback）、决策提交、结算逻辑（杠杆、10% 手续费、负债清算、退市判定 `< ¥10`、破产判定）、房主转移、旁观者、作弊覆盖（热加载 `cheat-config.json`）、状态序列化与个性化过滤（活跃玩家在交易阶段看不到涨跌结果和其他人的决策）。
+- **`src/game/GameEngine.js`** — 项目核心，封装全部游戏规则。房间密码 + 作弊密码双重验证、玩家加入 / 离开 / 重连、新闻生成（概率分布与 fallback）、决策提交、结算逻辑（杠杆、10% 手续费、负债清算、退市判定 `< ¥10`、破产判定）、房主转移、旁观者、作弊覆盖（以作弊密码登录的玩家决策决定新闻方向）、状态序列化与个性化过滤（活跃玩家在交易阶段看不到涨跌结果和其他人的决策）。
 
 - **`src/game/newsData.js`** — 静态文案库。`NEWS_DB` 共 82 条预设新闻（公开利多 22 条 / 公开利空 26 条 / 小道利多 18 条 / 小道利空 16 条），每条含 `msg`（新闻文本）、`normal`（正常结局）、`twist`（反转结局）；文案风格契合项目「火灾现场乐队」娱乐公司设定。`BUST_STORIES` 为 10 条破产结局趣闻。
 
-- **`src/game/cheat-config.json`** — 默认 `{ "enabled": false, "players": [] }`，被 `fs.watchFile`（1 秒间隔）监听，修改即生效。启用后指定玩家的决策将决定新闻方向（买入→利多，非买入→利空）。
+- **`src/game/cheat-config.json`** — 默认 `{ "password": "" }`，被 `fs.watchFile`（1 秒间隔）监听，修改即生效。设置密码后，用该密码登录的玩家进入作弊模式，其决策将决定新闻方向（买入→利多，非买入→利空），且强制新闻正常结局。
 
-- **`src/socket/index.js`** — 所有 Socket.IO 事件处理。包含按观看者身份发送的个性化状态广播、密码验证、加入 / 重连、开始游戏、决策提交、确认、下一轮、重新开始、改名、强制结算、踢人、表情弹幕、心跳与断线处理。定义 `GAME_VERSION` 常量用于前后端版本一致性检测。
+- **`src/socket/index.js`** — 所有 Socket.IO 事件处理。包含按观看者身份发送的个性化状态广播、密码验证（含作弊密码通道检测）、作弊玩家注册 / 注销、加入 / 重连、开始游戏、决策提交、确认、下一轮、重新开始、改名、强制结算、踢人、表情弹幕、心跳与断线处理。定义 `GAME_VERSION` 常量用于前后端版本一致性检测。
 
 - **`public/js/game.js`** — 前端逻辑。Socket 通信、界面切换、大厅列表、交易 / 结算 / 结果渲染、SVG 股价走势图、杠杆火焰粒子特效、移动端 Dock 适配、弹幕表情系统（5 轨道、1.2s 冷却）、游戏日志导出。
 
@@ -175,26 +175,26 @@ PORT=3000 FBSTOCK_PASSWORD=your_password npm start
 
 ### 运行时配置文件
 
-`src/game/cheat-config.json` 用于作弊控制：
+`src/game/cheat-config.json` 用于作弊密码控制：
 
 ```json
 {
-  "enabled": false,
-  "players": []
+  "password": ""
 }
 ```
 
-该文件被 `fs.watchFile` 监听（1 秒间隔），修改后自动生效，无需重启服务。启用后指定玩家的决策将决定新闻方向。
+该文件被 `fs.watchFile` 监听（1 秒间隔），修改后自动生效，无需重启服务。设置密码后，用该密码登录即进入作弊模式——作弊玩家的决策将决定新闻方向（买入→利多，非买入→利空），且强制新闻为正常结局。作弊密码通道同时仅允许一人使用。
 
 ### 鉴权机制
 
-采用简单的**房间密码验证**（非 JWT / Session）：
+采用**房间密码 + 作弊密码**双重验证（非 JWT / Session）：
 
 1. 客户端建立 Socket.IO 连接后发送 `auth` 事件携带密码；
-2. 服务端与 `FBSTOCK_PASSWORD` 做严格相等比较，通过后标记该 socket 已认证；
-3. 后续所有操作均校验认证状态，断线重连需重新认证。
+2. 服务端先与 `FBSTOCK_PASSWORD` 比较，若匹配则标记为普通玩家；
+3. 若不匹配，再与 `cheat-config.json` 中的作弊密码比较，若匹配则标记为作弊玩家；
+4. 后续所有操作均校验认证状态，断线重连需重新认证。
 
-所有玩家共享同一房间密码，不区分独立账号。`src/auth/` 目录为预留模块（当前为空）。
+所有普通玩家共享同一房间密码，不区分独立账号。`src/auth/` 目录为预留模块（当前为空）。
 
 ---
 
@@ -254,7 +254,7 @@ bash deploy/deploy.sh
 
 | 事件 | 说明 |
 |------|------|
-| `auth` | 密码验证 |
+| `auth` | 密码验证（房间密码 / 作弊密码） |
 | `join` | 加入游戏（大厅阶段为玩家，游戏中为旁观者，同名离线则重连恢复） |
 | `start` | 开始游戏（仅房主，可设回合数 5~30） |
 | `decide` | 提交决策与杠杆 |
@@ -296,6 +296,15 @@ bash deploy/deploy.sh
 ### 版本一致性机制
 
 前后端各自维护 `GAME_VERSION` 常量（格式如 `20260703-5`）。服务端在每次推送的状态中附带 `_serverVersion`，前端比对后若不匹配则显示全屏遮罩（`z-index: 99999`，`backdrop-filter: blur(12px)`）强制刷新，确保玩家使用最新版本。
+
+### 作弊系统
+
+作弊通过独立的密码通道实现，配置在 `src/game/cheat-config.json`：
+
+- 设置 `password` 字段后，登录时输入该密码即自动进入作弊模式；
+- 作弊玩家的决策决定当轮新闻方向（买入→利多，非买入→利空），且强制正常结局；
+- 作弊密码通道同时仅允许一人使用，防止冲突；
+- 配置文件支持热加载（`fs.watchFile` 1 秒间隔），修改即生效无需重启。
 
 ### 新闻数据
 

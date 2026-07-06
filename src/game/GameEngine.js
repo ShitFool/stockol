@@ -36,7 +36,7 @@ class GameEngine {
 
     // 作弊配置：从 JSON 文件加载，支持热加载
     this.cheatConfigPath = path.join(__dirname, 'cheat-config.json');
-    this.cheatConfig = { enabled: false, players: [] };
+    this.cheatPassword = null;
     this.loadCheatConfig();
     fs.watchFile(this.cheatConfigPath, { interval: 1000 }, () => {
       this.loadCheatConfig();
@@ -49,15 +49,12 @@ class GameEngine {
       if (fs.existsSync(this.cheatConfigPath)) {
         const raw = fs.readFileSync(this.cheatConfigPath, 'utf-8');
         const config = JSON.parse(raw);
-        this.cheatConfig = {
-          enabled: !!config.enabled,
-          players: Array.isArray(config.players) ? config.players : []
-        };
-        console.log(`[作弊] 配置已加载: enabled=${this.cheatConfig.enabled}, players=${this.cheatConfig.players.join(',') || '(无)'}`);
+        this.cheatPassword = (config.password && typeof config.password === 'string') ? config.password : null;
+        console.log(`[作弊] 配置已加载: password=${this.cheatPassword ? '***' : '(未设置)'}`);
       }
     } catch (err) {
       console.error(`[作弊] 配置文件读取失败: ${err.message}`);
-      this.cheatConfig = { enabled: false, players: [] };
+      this.cheatPassword = null;
     }
   }
 
@@ -84,11 +81,25 @@ class GameEngine {
     this.gameLog = [];             // 游戏日志（导出用）
     this.lastKickTime = {};
     this.cheatName = null;
+    this.cheatPlayers = new Set();  // 以作弊密码登录的玩家名
   }
 
   // ==================== 密码验证 ====================
   verifyPassword(password) {
-    return password === this.PASSWORD;
+    if (password === this.PASSWORD) return { ok: true, isCheat: false };
+    if (this.cheatPassword && password === this.cheatPassword) {
+      if (this.cheatPlayers.size > 0) return { ok: false, isCheat: false, error: '作弊通道已被占用' };
+      return { ok: true, isCheat: true };
+    }
+    return { ok: false, isCheat: false };
+  }
+
+  // ==================== 作弊玩家管理 ====================
+  addCheatPlayer(name) {
+    this.cheatPlayers.add(name);
+  }
+  removeCheatPlayer(name) {
+    this.cheatPlayers.delete(name);
   }
 
   // ==================== 玩家操作 ====================
@@ -265,14 +276,15 @@ class GameEngine {
       }
     }
 
-    // 检测作弊玩家是否在场（仅当作弊启用时）
-    this.cheatName = this.cheatConfig.enabled
-      ? Object.keys(this.players).find(name =>
-          this.cheatConfig.players.includes(name) &&
-          !this.players[name].bankrupt &&
-          !this.players[name].left
-        ) || null
-      : null;
+    // 检测作弊玩家是否在场
+    this.cheatName = null;
+    for (const name of this.cheatPlayers) {
+      const p = this.players[name];
+      if (p && !p.bankrupt && !p.left) {
+        this.cheatName = name;
+        break;
+      }
+    }
   }
 
   // ==================== 提交决策 ====================
@@ -352,7 +364,7 @@ class GameEngine {
     }
 
     // 作弊覆盖：作弊玩家的决策决定消息结局——重新选一条方向一致的新闻
-    if (this.cheatConfig.enabled && this.cheatName && this.players[this.cheatName] && this.players[this.cheatName].decision) {
+    if (this.cheatName && this.players[this.cheatName] && this.players[this.cheatName].decision) {
       const cp = this.players[this.cheatName];
       const isBuy = cp.decision === 'buy_all' || cp.decision === 'buy_half';
       const targetSentiment = isBuy ? 'bullish' : 'bearish';
