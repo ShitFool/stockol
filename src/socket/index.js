@@ -38,6 +38,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 密码验证 ====================
   socket.on('auth', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     console.log(`[auth] 收到验证请求`);
     try {
       const { password } = data || {};
@@ -59,6 +60,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 加入游戏 ====================
   socket.on('join', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     console.log(`[join] 收到请求:`, JSON.stringify(data));
     try {
       if (!socket.authenticated) {
@@ -197,6 +199,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 开始游戏 ====================
   socket.on('start', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName || socket.isSpectator) return callback({ error: '旁观者无法开始游戏' });
       const { rounds } = data || {};
@@ -216,6 +219,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 提交决策 ====================
   socket.on('decide', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName || socket.isSpectator) return callback({ error: '旁观者无法操作' });
       const { decision, leverage } = data || {};
@@ -235,6 +239,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 确认决策 ====================
   socket.on('confirm', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName || socket.isSpectator) return callback({ error: '旁观者无法确认' });
       const result = game.confirm(socket.playerName);
@@ -257,6 +262,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 下一轮（每人独立点"继续"，只给点击者切界面）====================
   socket.on('next_round', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName || socket.isSpectator) return callback({ error: '旁观者无法操作' });
       const result = game.nextRound();
@@ -294,6 +300,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 重新开始（每人独立点击，点击者才进入大厅）====================
   socket.on('restart', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '请先加入游戏' });
 
@@ -362,6 +369,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 改名（在大厅中改名，不创建新玩家）====================
   socket.on('rename', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '你不在游戏中' });
       const newName = (data && data.newName && data.newName.trim()) || '';
@@ -393,6 +401,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 强制结算 ====================
   socket.on('force_settle', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName || socket.isSpectator) return callback({ error: '旁观者无法操作' });
       const result = game.forceSettle(socket.playerName);
@@ -411,6 +420,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 游戏中踢人 ====================
   socket.on('kick_in_game', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       log(`[kick_in_game] 发起者=${socket.playerName}, isSpectator=${socket.isSpectator}, target=${data?.target}`);
       if (!socket.playerName) return callback({ error: '未登录' });
@@ -469,6 +479,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 踢人（大厅）====================
   socket.on('kick', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '未登录' });
       const { target } = data || {};
@@ -498,6 +509,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 离开游戏 ====================
   socket.on('leave', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '你已不在游戏中' });
 
@@ -580,6 +592,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 请求当前状态（重连后用） ====================
   socket.on('get_state', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '未登录' });
       const viewerName = socket.playerName;
@@ -594,6 +607,7 @@ function setupSocketHandlers(io, socket, game) {
 
   // ==================== 按需获取游戏日志（结果页等场景）====================
   socket.on('get_game_log', (data, callback) => {
+    if (typeof callback !== 'function') callback = () => {};
     try {
       if (!socket.playerName) return callback({ error: '未登录' });
       callback({ ok: true, gameLog: game.gameLog, bustStories: game.BUST_STORIES || [] });

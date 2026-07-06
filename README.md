@@ -3,10 +3,10 @@ AIGC:
   ContentProducer: '001191110102MAD55U9H0F10002'
   ContentPropagator: '001191110102MAD55U9H0F10002'
   Label: '1'
-  ProduceID: 'e1af4e48-58d3-44bd-a2b9-eb872904026e'
-  PropagateID: 'e1af4e48-58d3-44bd-a2b9-eb872904026e'
-  ReservedCode1: 'a148fcb8-a44c-4527-a49a-1fe903489bf6'
-  ReservedCode2: 'a148fcb8-a44c-4527-a49a-1fe903489bf6'
+  ProduceID: '15f41852-fbfa-40af-a0a2-7ea4f9597238'
+  PropagateID: '15f41852-fbfa-40af-a0a2-7ea4f9597238'
+  ReservedCode1: '66264c3a-ba62-42aa-a799-7446f4253cd9'
+  ReservedCode2: '66264c3a-ba62-42aa-a799-7446f4253cd9'
 ---
 
 # FB股份 · 投资模拟
