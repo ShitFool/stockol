@@ -1,13 +1,3 @@
----
-AIGC:
-  ContentProducer: '001191110102MAD55U9H0F10002'
-  ContentPropagator: '001191110102MAD55U9H0F10002'
-  Label: '1'
-  ProduceID: '15f41852-fbfa-40af-a0a2-7ea4f9597238'
-  PropagateID: '15f41852-fbfa-40af-a0a2-7ea4f9597238'
-  ReservedCode1: '66264c3a-ba62-42aa-a799-7446f4253cd9'
-  ReservedCode2: '66264c3a-ba62-42aa-a799-7446f4253cd9'
----
 
 # FB股份 · 投资模拟
 
@@ -331,5 +321,3 @@ bash deploy/deploy.sh
 - **配色约定**：红涨绿跌（`--up:#e85555` / `--down:#3cb870`），符合中国市场习惯。
 - **微信兼容**：`server.js` 对 HTML 文件设置 `no-store, no-cache, must-revalidate, proxy-revalidate` 响应头，防止微信 WebView 的激进缓存策略导致用户无法获取更新。
 - **CORS 限制**：Socket.IO 通过 `CORS_ORIGINS` 环境变量控制允许的来源（默认仅 `http://localhost:5000`），生产环境需按实际域名配置。
-
-> AI生成
