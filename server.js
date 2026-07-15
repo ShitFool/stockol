@@ -1,17 +1,29 @@
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const fs = require('fs');
 const path = require('path');
 
 const { GameEngine } = require('./src/game/GameEngine');
 const { setupSocketHandlers } = require('./src/socket');
+
+// ==================== 认证审计日志（供 fail2ban 监控）====================
+const AUTH_LOG_PATH = path.join(__dirname, 'auth.log');
+const authLogStream = fs.createWriteStream(AUTH_LOG_PATH, { flags: 'a' });
+function authLog(message) {
+  const ts = new Date().toISOString();
+  const line = `${ts} ${message}\n`;
+  authLogStream.write(line);
+}
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   pingTimeout: 60000,
   pingInterval: 25000,
-  cors: { origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5000'], methods: ['GET', 'POST'] }
+  cors: { origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5000'], methods: ['GET', 'POST'] },
+  // 信任 nginx 反向代理，获取真实客户端 IP（部署时建议启用）
+  // trustProxy: true,
 });
 
 // 游戏引擎实例（全局单例）
@@ -36,7 +48,7 @@ app.get('/health', (req, res) => res.json({ ok: true, phase: game.phase }));
 io.on('connection', (socket) => {
   console.log(`[连接] ${socket.id}`);
   try {
-    setupSocketHandlers(io, socket, game);
+    setupSocketHandlers(io, socket, game, authLog);
   } catch (err) {
     console.error(`[错误] 设置 Socket 处理器失败:`, err.message);
     socket.disconnect(true);

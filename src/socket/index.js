@@ -2,8 +2,16 @@
 
 const GAME_VERSION = '20260703-5';
 
-function setupSocketHandlers(io, socket, game) {
+function setupSocketHandlers(io, socket, game, authLog) {
   const log = (msg) => console.log(`[${socket.id}] ${msg}`);
+
+  // 获取客户端真实 IP（兼容 nginx 代理）
+  function getClientIP() {
+    return socket.handshake.headers['x-real-ip']
+      || socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      || socket.handshake.address
+      || 'unknown';
+  }
 
   // ==================== 个性化状态广播 ====================
   // 遍历房间内所有 socket，根据每个观看者的身份发送不同状态
@@ -42,10 +50,14 @@ function setupSocketHandlers(io, socket, game) {
     console.log(`[auth] 收到验证请求`);
     try {
       const { password } = data || {};
-      if (!password) return callback({ error: '请输入密码' });
+      if (!password) {
+        authLog(`AUTH_FAIL ip=${getClientIP()} reason=empty_password`);
+        return callback({ error: '请输入密码' });
+      }
       const result = game.verifyPassword(password);
       if (!result.ok) {
         log(`验证失败：${result.error || '密码错误'}`);
+        authLog(`AUTH_FAIL ip=${getClientIP()} reason=wrong_password`);
         return callback({ error: result.error || '密码错误' });
       }
       socket.authenticated = true;
@@ -54,6 +66,7 @@ function setupSocketHandlers(io, socket, game) {
       log(`验证通过${result.isCheat ? '（作弊模式）' : ''}`);
     } catch (err) {
       log(`验证错误: ${err.message}`);
+      authLog(`AUTH_FAIL ip=${getClientIP()} reason=error:${err.message}`);
       callback({ error: '验证失败' });
     }
   });
